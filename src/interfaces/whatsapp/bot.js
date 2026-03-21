@@ -2,7 +2,7 @@ require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { handleShopping } = require('../../handlers/shopping-handler');
-const { chat } = require('./claude');
+const { chat } = require('../../core/claude');
 const ALLOWED = (process.env.ALLOWED_PHONES || '').split(',');
 
 const SYSTEM_PROMPT = `You are a friendly family assistant.
