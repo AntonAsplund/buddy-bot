@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment variables (API keys, phone numbers)
+.env
+.env.local
+
+# Database with family data
+data/family.db
+data/*.db
+
+# WhatsApp session auth files
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+tmp/
+temp/
+*.tmp
