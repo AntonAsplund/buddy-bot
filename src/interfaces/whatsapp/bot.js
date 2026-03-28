@@ -1,17 +1,31 @@
 require('dotenv').config();
-const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { handleShopping } = require('../../handlers/shopping-handler');
-const { chat } = require('../../core/claude');
-const ALLOWED = (process.env.ALLOWED_PHONES || '').split(',');
 
-const SYSTEM_PROMPT = `You are a friendly family assistant.
-Keep replies short and casual. You help with shopping,
-and chatting. Reply in the same language as the user.`;
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const { getUserGroupForPhoneNumber } = require('../../utils/auth-utils');
+const { handleMessage } = require('../../handlers/message-handler');
+
+const ALLOWED = (process.env.ALLOWED_PHONES || '').split(',');
 
 const client = new Client({
     authStrategy: new LocalAuth(),
-    puppeteer: { args: ['--no-sandbox'] },
+    puppeteer: {
+        headless: 'new',
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-blink-features=AutomationControlled',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--disable-sync',
+            '--disable-default-apps',
+            '--disable-background-networking',
+            '--disable-breakpad',
+            '--disable-component-extensions-with-background-pages',
+        ],
+    },
 });
 
 client.on('qr', (qr) => {
@@ -20,36 +34,38 @@ client.on('qr', (qr) => {
 });
 
 client.on('ready', () => {
-    console.log('Bot is ready!');
+    console.log('✅ Bot is ready!');
 });
 
-client.on('message', async (msg) => {
+client.on('disconnected', (reason) => {
+    console.log('❌ Bot disconnected:', reason);
+    console.log('Reconnecting in 5 seconds...');
+    setTimeout(() => {
+        client.initialize().catch((err) => {
+            console.error('Failed to reconnect:', err.message);
+        });
+    }, 5000);
+});
+
+client.on('error', (error) => {
+    console.error('⚠️ WhatsApp client error:', error.message);
+});
+
+// client.on('message_create', async (msg) => {
+//     console.log(`\n[message_create event] FROM: ${msg.from} | BODY: ${msg.body}`);
+// });
+
+client.on('message_create', async (msg) => {
+    console.log(`Received message from ${msg.from}: ${msg.body}`);
+
     if (!ALLOWED.includes(msg.from)) {
-        // TODO: Add proper auth with roles and multiple users
+        // TODO: Add proper logging instead of console.log, and log to a file or monitoring system
+        console.log(`Unauthorized access attempt from ${msg.from}`);
         return;
     }
 
-    // Added for initial verification of flow
-    // TODO: Refactor to sctructure commands better and not have this in the main message handler
-    // TODO:Add LLM command parsing and routing later as well
-    const text = msg.body.trim();
-    const contact = await msg.getContact();
-    const name = contact.pushname || 'Unknown';
-    const [command, ...args] = text.split(' ');
-    const shoppingReply = handleShopping(command, args, name);
-
-    if (shoppingReply) {
-        return msg.reply(shoppingReply);
-    }
-
-    // Everything else goes to Claude as a normal chat message for fallback handling and general conversation
-    try {
-        const reply = await chat(msg.from, text, SYSTEM_PROMPT);
-        msg.reply(reply);
-    } catch (err) {
-        console.error(err);
-        msg.reply('Sorry, something went wrong!');
-    }
+    const currentUserGroup = getUserGroupForPhoneNumber(msg.from);
+    handleMessage(msg, currentUserGroup);
 });
 
 client.initialize();
