@@ -1,17 +1,18 @@
 const db = require('../core/database');
 
-const addItems = (items, senderName) => {
+const addItems = (items, quantity, senderName) => {
     const stmt = db.prepare(
-        'INSERT INTO shopping_items (item, added_by) VALUES (?, ?)'
+        'INSERT INTO shopping_items (item, quantity, added_by) VALUES (?, ?, ?)'
     );
-    items.forEach((item) => stmt.run(item, senderName));
+    const qty = quantity || 1;
+    items.forEach((item) => stmt.run(item, qty, senderName));
     return items;
 };
 
 const listItems = () => {
     const rows = db
         .prepare(
-            'SELECT item, added_by FROM shopping_items WHERE bought = 0 ORDER BY id'
+            'SELECT item, quantity, added_by FROM shopping_items WHERE bought = 0 ORDER BY id'
         )
         .all();
 

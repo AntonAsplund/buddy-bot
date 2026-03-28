@@ -6,6 +6,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS shopping_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item TEXT NOT NULL,
+    quantity INTEGER DEFAULT 1,
     added_by TEXT,
     added_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
     bought INTEGER DEFAULT 0 
