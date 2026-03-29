@@ -2,28 +2,25 @@ require('dotenv').config();
 const qrcode = require('qrcode-terminal');
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const { getUserGroupForPhoneNumber } = require('../../utils/auth-utils');
+const { getUserGroupForPhoneNumber, verifyAccessForPhoneNumber } = require('../../utils/auth-utils');
 const { handleMessage } = require('../../handlers/message-handler');
-
-const ALLOWED = (process.env.ALLOWED_PHONES || '').split(',');
 
 const client = new Client({
     authStrategy: new LocalAuth(),
+    webVersionCache: {
+        type: 'remote',
+        remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html`,
+    },
     puppeteer: {
-        headless: 'new',
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--disable-web-security',
-            '--disable-blink-features=AutomationControlled',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-sync',
-            '--disable-default-apps',
-            '--disable-background-networking',
-            '--disable-breakpad',
-            '--disable-component-extensions-with-background-pages',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
         ],
     },
 });
@@ -55,16 +52,25 @@ client.on('error', (error) => {
 //     console.log(`\n[message_create event] FROM: ${msg.from} | BODY: ${msg.body}`);
 // });
 
-client.on('message_create', async (msg) => {
+client.on('message', async (msg) => {
     console.log(`Received message from ${msg.from}: ${msg.body}`);
 
-    if (!ALLOWED.includes(msg.from)) {
-        // TODO: Add proper logging instead of console.log, and log to a file or monitoring system
+    // Get the sender's phone number from contact
+    let senderPhone = null;
+    try {
+        const contact = await msg.getContact();
+        senderPhone = contact.number;
+        console.log(`  Contact phone number: ${senderPhone}`);
+    } catch (err) {
+        console.error(`  Error fetching contact: ${err.message}`);
+    }
+
+    if (!senderPhone || !verifyAccessForPhoneNumber(senderPhone)) {
         console.log(`Unauthorized access attempt from ${msg.from}`);
         return;
     }
 
-    const currentUserGroup = getUserGroupForPhoneNumber(msg.from);
+    const currentUserGroup = getUserGroupForPhoneNumber(senderPhone);
     handleMessage(msg, currentUserGroup);
 });
 
