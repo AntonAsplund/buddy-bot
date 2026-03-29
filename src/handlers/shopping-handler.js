@@ -11,33 +11,43 @@ const JSON_DESCRIPTION_ADD = {
     input_schema: {
         type: 'object',
         properties: {
-            item: {
-                type: 'string',
-                description: 'Single item or comma-separated items to add (e.g., "milk" or "milk, eggs, bread")'
-            },
-            quantity: {
-                type: 'number',
-                description: 'Quantity of the item'
+            items: {
+                type: 'array',
+                description: 'Array of items to add to the shopping list',
+                items: {
+                    type: 'object',
+                    properties: {
+                        name: {
+                            type: 'string',
+                            description: 'The name of the item'
+                        },
+                        quantity: {
+                            type: 'number',
+                            description: 'The quantity of the item'
+                        }
+                    },
+                    required: ['name', 'quantity']
+                }
             }
         },
-        required: ['item'],
+        required: ['items'],
         additionalProperties: false
     }
 };
 
-const handleShoppingAdd = (args, quantity, senderName) => {
-    if (!args.length) {
-        return 'What should I add? Try: !add milk';
+const handleShoppingAdd = (items, senderName) => {
+    console.log(`handleShoppingAdd called with items: ${JSON.stringify(items)}, senderName: ${senderName}`);
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return 'What should I add? Please provide items with names and quantities.';
     }
-    const items = args
-        .join(' ')
-        .split(',')
-        .map((i) => i.trim())
-        .filter(Boolean);
 
-    const updatedItems = addItems(items, quantity, senderName);
+    const addedItems = [];
+    for (const item of items) {
+        addItems([item.name], item.quantity, senderName);
+        addedItems.push(`${item.name} (qty: ${item.quantity})`);
+    }
 
-    return `✅ Added to list: ${updatedItems.join(', ')}`;
+    return `Added to list: ${addedItems.join(', ')}`;
 };
 
 const JSON_DESCRIPTION_LIST = {
@@ -52,6 +62,7 @@ const JSON_DESCRIPTION_LIST = {
 };
 
 const handleShoppingShowList = () => {
+    console.log('handleShoppingShowList called');
     const rows = listItems();
 
     if (!rows.length) {
@@ -60,7 +71,7 @@ const handleShoppingShowList = () => {
 
     const lines = rows.map((r, i) => `${i + 1}. ${r.item} (qty: ${r.quantity}) - ${r.added_by}`);
 
-    return `🛒 *Shopping List*\n${lines.join('\n')}`;
+    return `*Shopping List*\n${lines.join('\n')}`;
 };
 
 
@@ -81,6 +92,7 @@ const JSON_DESCRIPTION_DONE = {
 };
 
 const handleShoppingDone = (args, senderName) => {
+    console.log(`handleShoppingDone called with args: ${args}, senderName: ${senderName}`);
     if (!args.length) {
         return 'Which item number did you buy? Try: !done 2';
     }
@@ -88,7 +100,7 @@ const handleShoppingDone = (args, senderName) => {
     const idx = parseInt(args[0], 10) - 1;
     const item = markDone(idx);
 
-    return `✔️ Marked as bought: ${item}`;
+    return `Marked as bought: ${item}`;
 };
 
 const JSON_DESCRIPTION_CLEAR = {
@@ -103,9 +115,10 @@ const JSON_DESCRIPTION_CLEAR = {
 };
 
 const handleShoppingClear = () => {
+    console.log('handleShoppingClear called');
     const clearedItems = clrBought();
 
-    return `🗑️ Removed ${clearedItems} bought item(s).`;
+    return `Removed ${clearedItems} bought item(s).`;
 };
 
 module.exports = {
