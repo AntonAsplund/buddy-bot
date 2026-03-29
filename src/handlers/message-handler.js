@@ -4,7 +4,7 @@ const { saveMediaAsFile } = require('../utils/media-utils');
 const handleMessage = async (msg, userGroup) => {
     const text = msg.body.trim();
 
-    // Move into a tool-based flow if message contains media and user is admin, otherwise treat as normal chat message for fallback handling and general conversation
+    // TODO: Move into a tool-based flow if message contains media and user is admin, otherwise treat as normal chat message for fallback handling and general conversation
     if (msg.hasMedia && userGroup === 'admin') {
         saveMediaAsFile(msg).then((result) => {
             if (result.success) {
