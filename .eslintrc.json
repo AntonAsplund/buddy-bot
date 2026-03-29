@@ -61,7 +61,6 @@
     "spaced-comment": ["error", "always", { "markers": ["/"] }],
  
     // --- ES6+ ---
-    "arrow-body-style": ["error", "as-needed"],
     "no-useless-computed-key": "error",
     "no-useless-constructor": "error",
     "no-useless-rename": "error",
