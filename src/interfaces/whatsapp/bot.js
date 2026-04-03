@@ -48,10 +48,6 @@ client.on('error', (error) => {
     console.error('⚠️ WhatsApp client error:', error.message);
 });
 
-// client.on('message_create', async (msg) => {
-//     console.log(`\n[message_create event] FROM: ${msg.from} | BODY: ${msg.body}`);
-// });
-
 client.on('message', async (msg) => {
     console.log(`Received message from ${msg.from}: ${msg.body}`);
 

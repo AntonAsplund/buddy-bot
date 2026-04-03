@@ -21,6 +21,12 @@ db.exec(`
     location TEXT
   ); 
 
+  CREATE TABLE IF NOT EXISTS shopping_lists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT
+  );
+
 `);
 
 module.exports = db;
