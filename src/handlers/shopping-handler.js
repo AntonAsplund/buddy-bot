@@ -66,6 +66,7 @@ const handleCreateShoppingList = (items) => {
     return `Created tables: ${items.map(item => item.name).join(', ')}`;
 }
 
+// TODO: Update to be dynamic depending on the columns of the table. 
 const JSON_DESCRIPTION_ADD = {
     name: 'add_to_shopping_list',
     description: 'Add items to the shopping list',
