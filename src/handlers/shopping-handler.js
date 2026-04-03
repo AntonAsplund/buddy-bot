@@ -139,7 +139,12 @@ const handleShoppingShowList = (tableName) => {
         return 'Shopping list is empty!';
     }
 
-    const lines = rows.map((r, i) => `${i + 1}. ${r.item} (qty: ${r.quantity}) - ${r.added_by}`);
+    const lines = rows.map((r, i) => {
+        const columnValues = Object.keys(r)
+            .map(key => r[key])
+            .join(' - ');
+        return `${i + 1}. ${columnValues}`;
+    });
 
     return `*Shopping List*\n${lines.join('\n')}`;
 };

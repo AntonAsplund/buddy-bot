@@ -35,7 +35,7 @@ const addItems = (tableName, item, quantity, senderName) => {
 const listItems = (tableName) => {
     const rows = db
         .prepare(
-            `SELECT item, quantity, added_by FROM ${tableName} ORDER BY id`
+            `SELECT * FROM ${tableName} ORDER BY id`
         )
         .all();
 
