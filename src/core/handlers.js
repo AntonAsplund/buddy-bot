@@ -28,15 +28,15 @@ const executeTool = (toolName, toolInput, userId) => {
 
     switch (toolName) {
         case 'create_shopping_list':
-            return handleCreateShoppingList(toolInput.items);
-        case 'show_all_shopping_lists':
-            return handleShowAllShoppingLists();
+            return handleCreateShoppingList(toolInput.name, toolInput.description);
         case 'add_to_shopping_list':
-            return handleShoppingAdd(toolInput.tableName, toolInput.items, userId);
+            return handleShoppingAdd(toolInput.items);
         case 'list_shopping_items':
             return handleShoppingShowList(toolInput.tableName);
+        case 'show_all_shopping_lists':
+            return handleShowAllShoppingLists();
         case 'mark_item_as_bought':
-            return handleShoppingDone(toolInput.item_number, toolInput.tableName, userId);
+            return handleShoppingDone(toolInput.tableName, toolInput.itemId);
         case 'clear_bought_items':
             return handleShoppingClear(toolInput.tableName);
         default:

@@ -7,8 +7,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item TEXT NOT NULL,
     quantity INTEGER DEFAULT 1,
+    description TEXT,
     added_by TEXT,
-    added_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
     bought INTEGER DEFAULT 0 
   );
 

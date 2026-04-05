@@ -9,44 +9,85 @@ const {
 
 const JSON_DESCRIPTION_CREATE_LIST = {
     name: 'create_shopping_list',
-    description: 'Create a new shopping list with specified items. It will be created as a table in an sql database. Remember to check if the table exists already before creating and only use alphanumeric characters and underscores for table names and columns.',
+    description: 'Create a new shopping list with five columns.'
+                + ' It will be created as a table in an sql database.'
+                + ' Remember to check if the table exists already before creating and only use alphanumeric characters and underscores for table names.'
+                + ' The five columns will be name (string), description (string), quantity (number), added_by (string), and bought (boolean).',
+    input_schema: {
+        type: 'object',
+        properties: {
+            name: {
+                type: 'string',
+                description: 'The name of the table to create'
+            },
+            description: {
+                type: 'string',
+                description: 'A short description of the table'
+            }
+        },
+        required: ['name', 'description']
+    }
+};
+
+const handleCreateShoppingList = (name, description) => {
+    console.log(`handleCreateShoppingList called with name: ${name}, description: ${description}`);
+    if (!name || !description) {
+        return 'What should I create? Please provide a valid table definition with name and description.';
+    }
+
+    createTable({ name, description });
+
+    return `Created table: ${name}`;
+}
+
+const JSON_DESCRIPTION_ADD = {
+    name: 'add_to_shopping_list',
+    description: 'Add items to the shopping list',
     input_schema: {
         type: 'object',
         properties: {
             items: {
                 type: 'array',
-                description: 'Array of new shopping tables to create',
+                description: 'Array of new items to create.'
+                            + ' Each item should have the following properties: tableName (string), name (string), quantity (number), '
+                            + 'description (string), addedBy (string), bought (int represented as 0 or 1).'
+                            + ' The tableName property specifies which shopping list table to add the item to.'
+                            + ' The name property is the name of the item to add.'
+                            + ' The quantity property is the quantity of the item to add.'
+                            + ' The description property is a short description of the item.'
+                            + ' The addedBy property is the name of the person adding the item.'
+                            + ' The bought property indicates whether the item has been bought (0 or 1, where 1 means bought).'
+                            + 'Example input: { items: [ { tableName: "weekly_groceries", name: "milk", quantity: 2, description: "2% milk", addedBy: "Alice", bought: 0 } ] }',
                 items: {
                     type: 'object',
                     properties: {
+                        tableName: {
+                            type: 'string',
+                            description: 'The name of the shopping list table to add items to'
+                        },
                         name: {
                             type: 'string',
-                            description: 'The name of the table to create'
+                            description: 'The name of the item'
+                        },
+                        quantity: {
+                            type: 'number',
+                            description: 'The quantity of the item'
                         },
                         description: {
                             type: 'string',
-                            description: 'A short description of the table'
+                            description: 'A short description of the item'
                         },
-                        columns: {
-                            type: 'array',
-                            description: 'Array of columns for the table. Each column should have a name and a data type.',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    name: {
-                                        type: 'string',
-                                        description: 'The name of the column'
-                                    },
-                                    type: {
-                                        type: 'string',
-                                        description: 'The data type of the column'
-                                    }
-                                },
-                                required: ['name', 'type']
-                            }
+                        addedBy: {
+                            type: 'string',
+                            description: 'The name of the person adding the item'
+                        },
+                        bought: {
+                            type: 'number',
+                            description: 'Whether the item has been bought'
                         }
                     },
-                    required: ['name', 'description', 'columns']
+                    required: ['tableName', 'name', 'quantity', 'description', 'addedBy', 'bought'],
+                    additionalProperties: false
                 }
             }
         },
@@ -55,63 +96,18 @@ const JSON_DESCRIPTION_CREATE_LIST = {
     }
 };
 
-const handleCreateShoppingList = (items) => {
-    console.log(`handleCreateShoppingList called with items: ${JSON.stringify(items)}`);
+const handleShoppingAdd = (items) => {
+    console.log(`handleShoppingAdd called with items: ${JSON.stringify(items)}`);
     if (!items || !Array.isArray(items) || items.length === 0) {
-        return 'What should I create? Please provide tables with names, descriptions, and columns.';
-    }
-
-    createTable(items);
-
-    return `Created tables: ${items.map(item => item.name).join(', ')}`;
-}
-
-// TODO: Update to be dynamic depending on the columns of the table. 
-const JSON_DESCRIPTION_ADD = {
-    name: 'add_to_shopping_list',
-    description: 'Add items to the shopping list',
-    input_schema: {
-        type: 'object',
-        properties: {
-            tableName: {
-                type: 'string',
-                description: 'The name of the shopping list table to add items to'
-            },
-            items: {
-                type: 'array',
-                description: 'Array of items to add to the shopping list',
-                items: {
-                    type: 'object',
-                    properties: {
-                        name: {
-                            type: 'string',
-                            description: 'The name of the item'
-                        },
-                        quantity: {
-                            type: 'number',
-                            description: 'The quantity of the item'
-                        }
-                    },
-                    required: ['name', 'quantity']
-                }
-            }
-        },
-        required: ['items', 'tableName'],
-        additionalProperties: false
-    }
-};
-
-const handleShoppingAdd = (tableName, items, senderName) => {
-    console.log(`handleShoppingAdd called with tableName: ${tableName}, items: ${JSON.stringify(items)}, senderName: ${senderName}`);
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return 'What should I add? Please provide items with names and quantities.';
+        return 'No empty items to add! Please provide an array of items with the following properties: tableName (string), name (string), quantity (number), description (string), addedBy (string), bought (int represented as 0 or 1). Example input: { items: [ { tableName: "weekly_groceries", name: "milk", quantity: 2, description: "2% milk", addedBy: "Alice", bought: 0 } ] }';
     }
 
     const addedItems = [];
-    for (const item of items) {
-        addItems(tableName, item.name, item.quantity, senderName);
-        addedItems.push(`${item.name} (qty: ${item.quantity})`);
-    }
+    items.forEach(item => {
+        const { tableName, name, quantity, description, addedBy, bought } = item;
+        addItems(tableName, name, quantity, description, addedBy, bought);
+        addedItems.push(`${name} (qty: ${quantity})`);
+    });
 
     return `Added to list: ${addedItems.join(', ')}`;
 };
@@ -140,11 +136,9 @@ const handleShoppingShowList = (tableName) => {
         return 'Shopping list is empty!';
     }
 
-    const lines = rows.map((r, i) => {
-        const columnValues = Object.keys(r)
-            .map(key => r[key])
-            .join(' - ');
-        return `${i + 1}. ${columnValues}`;
+    const lines = rows.map((r) => {
+        const bought = r.bought ? '✓' : ' ';
+        return `[${bought}] ID ${r.id}: ${r.item} (qty: ${r.quantity}) - ${r.description}`;
     });
 
     return `*Shopping List*\n${lines.join('\n')}`;
@@ -175,7 +169,7 @@ const handleShowAllShoppingLists = () => {
 
 const JSON_DESCRIPTION_DONE = {
     name: 'mark_item_as_bought',
-    description: 'Mark an item as bought',
+    description: 'Mark an item as bought by its ID',
     input_schema: {
         type: 'object',
         properties: {
@@ -183,21 +177,20 @@ const JSON_DESCRIPTION_DONE = {
                 type: 'string',
                 description: 'The name of the shopping list table'
             },
-            item_number: {
+            itemId: {
                 type: 'number',
-                description: 'The number of the item to mark as bought'
+                description: 'The ID of the item to mark as bought (not the position number)'
             }
         },
-        required: ['item_number', 'tableName'],
+        required: [ 'tableName' ,'itemId'],
         additionalProperties: false
     }
 };
 
-const handleShoppingDone = (itemNumber, tableName, senderName) => {
-    console.log(`handleShoppingDone called with itemNumber: ${itemNumber}, tableName: ${tableName}, senderName: ${senderName}`);
+const handleShoppingDone = (tableName, itemId) => {
+    console.log(`handleShoppingDone called with itemId: ${itemId}, tableName: ${tableName}`);
 
-    const idx = parseInt(itemNumber, 10) - 1;
-    const item = markDone(idx, tableName);
+    const item = markDone(tableName, itemId);
 
     return `Marked as bought: ${item}`;
 };

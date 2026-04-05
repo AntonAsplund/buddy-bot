@@ -1,21 +1,20 @@
 const db = require('../core/database');
 
-const createTable = (tables) => {
-    tables.forEach((table) => {
-        const columnsDef = table.columns
-            .map((col) => `${col.name} ${col.type}`)
-            .join(', ');
-            
-        const createTableSQL = `CREATE TABLE IF NOT EXISTS ${table.name} (${columnsDef})`;
-        db.prepare(createTableSQL).run();
-    });
+const createTable = (table) => {
+    const createTableSQL = `CREATE TABLE IF NOT EXISTS ${table.name} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item TEXT NOT NULL,
+        description TEXT,
+        quantity INTEGER NOT NULL,
+        added_by TEXT,
+        bought INTEGER DEFAULT 0
+    )`;
+    db.prepare(createTableSQL).run();
 
-    // Add the tables to a master list of shopping lists
-    tables.forEach((table) => {
-        db.prepare(`INSERT INTO shopping_lists (name, description) VALUES (?, ?)`).run(table.name, table.description);
-    });
+    // Add the table to a master list of shopping lists
+    db.prepare(`INSERT INTO shopping_lists (name, description) VALUES (?, ?)`).run(table.name, table.description);
 
-    return `Created tables: ${tables.map(table => table.name).join(', ')}`;
+    return `Created table: ${table.name}`;
 };
 
 const listAllShoppingLists = () => {
@@ -23,12 +22,12 @@ const listAllShoppingLists = () => {
     return rows;
 }
 
-const addItems = (tableName, item, quantity, senderName) => {
+const addItems = (tableName, item, quantity, description, addedBy, bought) => {
     const stmt = db.prepare(
-        `INSERT INTO ${tableName} (item, quantity, added_by) VALUES (?, ?, ?)`
+        `INSERT INTO ${tableName} (item, quantity, description, added_by, bought) VALUES (?, ?, ?, ?, ?)`
     );
     const qty = quantity || 1;
-    stmt.run(item, qty, senderName);
+    stmt.run(item, qty, description, addedBy, bought);
     return item;
 };
 
@@ -42,22 +41,20 @@ const listItems = (tableName) => {
     return rows;
 };
 
-const markDone = (idx, tableName) => {
-    const rows = db
+const markDone = (tableName, itemId) => {
+    const row = db
         .prepare(
-            `SELECT id, item FROM ${tableName} WHERE bought = 0 ORDER BY id`
+            `SELECT id, item FROM ${tableName} WHERE id = ?`
         )
-        .all();
+        .get(itemId);
 
-    if (isNaN(idx) || !rows[idx]) {
+    if (!row) {
         return null;
     }
 
-    db.prepare('UPDATE shopping_items SET bought = 1 WHERE id = ?').run(
-        rows[idx].id
-    );
+    db.prepare(`UPDATE ${tableName} SET bought = 1 WHERE id = ?`).run(itemId);
 
-    return rows[idx].item;
+    return row.item;
 };
 
 const clrBought = (tableName) => {
