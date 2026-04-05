@@ -3,9 +3,11 @@ const { availableToolsForUserGroup, executeTool } = require('./handlers');
 const { getPrompt } = require('./prompts');
 const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const conversations = {}; // TODO: Update to make use of DB for context persistance between messages.
 
+// TODO: Update to make use of DB for context persistance between messages.
+const conversations = {}; 
 
+// TODO: Refactor the logic to handle tool_use blocks in a more elegant way.
 async function chat(userId, userMessage, userGroup) {
     if (!conversations[userId]) {
         conversations[userId] = [];
@@ -55,13 +57,44 @@ async function chat(userId, userMessage, userGroup) {
         });
 
         // Make another request to get the final response after tool execution
-        const finalResponse = await client.messages.create({
+        let finalResponse = await client.messages.create({
             model: 'claude-haiku-4-5',
             max_tokens: 1024,
             system: getPrompt(userGroup),
             messages: conversations[userId],
             tools: availableToolsForUserGroup(userGroup)
         }, { maxRetries: 5 });
+
+        while (finalResponse.content.some(block => block.type === 'tool_use')) {
+            conversations[userId].push({ role: 'assistant', content: finalResponse.content });
+            
+            const finalToolUseBlocks = finalResponse.content.filter(block => block.type === 'tool_use');
+            const finalToolResults = await Promise.all(
+                finalToolUseBlocks.map(async (toolUse) => {
+                    console.log(`Executing tool in final response: ${toolUse.name} with input: ${JSON.stringify(toolUse.input)} for userId: ${userId}`);
+                    const result = await executeTool(toolUse.name, toolUse.input, userId);
+                    console.log(`Tool ${toolUse.name} executed with result: ${result}`);
+                    return {
+                        type: 'tool_result',
+                        tool_use_id: toolUse.id,
+                        content: result
+                    };
+                })
+            );
+            
+            conversations[userId].push({ 
+                role: 'user', 
+                content: finalToolResults
+            });
+            
+            finalResponse = await client.messages.create({
+                model: 'claude-haiku-4-5',
+                max_tokens: 1024,
+                system: getPrompt(userGroup),
+                messages: conversations[userId],
+                tools: availableToolsForUserGroup(userGroup)
+            }, { maxRetries: 5 });
+        }
 
         const reply = finalResponse.content[0].text || 'Done!';
         conversations[userId].push({ role: 'assistant', content: reply });
