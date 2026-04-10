@@ -2,10 +2,8 @@ require('dotenv').config();
 const { availableToolsForUserGroup, executeTool } = require('./handlers');
 const { getPrompt } = require('./prompts');
 const Anthropic = require('@anthropic-ai/sdk');
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-// TODO: Update to make use of DB for context persistance between messages.
-const conversations = {}; 
+const { getConversationHistory, batchAddConversationMessages, clearHistory: clearHistoryService } = require('../services/conversation-history');
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); 
 
 /**
  * Make a single API call to Claude
@@ -50,39 +48,43 @@ function executeToolsAndGetResults(toolUseBlocks, userId) {
 }
 
 async function chat(userId, userMessage, userGroup) {
-    if (!conversations[userId]) {
-        conversations[userId] = [];
-    }
+    const dbHistory = getConversationHistory(userId, 20);
+    const messages = [...dbHistory];
+    const newMessages = [];
 
-    conversations[userId].push({ role: 'user', content: userMessage });
+    const userMsg = { role: 'user', content: userMessage };
+    messages.push(userMsg);
+    newMessages.push(userMsg);
 
-    // Keep last 20 messages to control costs
-    if (conversations[userId].length > 20) {
-        conversations[userId] = conversations[userId].slice(-20);
-    }
-
-    let response = await callClaudeAPI(conversations[userId], userGroup);
+    let response = await callClaudeAPI(messages, userGroup);
 
     while (response.content.some(block => block.type === 'tool_use')) {
-        conversations[userId].push({ role: 'assistant', content: response.content });
+        const assistantMsg = { role: 'assistant', content: response.content };
+        messages.push(assistantMsg);
+        newMessages.push(assistantMsg);
 
         const toolUseBlocks = response.content.filter(block => block.type === 'tool_use');
         const toolResults = await executeToolsAndGetResults(toolUseBlocks, userId);
 
-        conversations[userId].push({ role: 'user', content: toolResults });
+        const toolResultMsg = { role: 'user', content: toolResults };
+        messages.push(toolResultMsg);
+        newMessages.push(toolResultMsg);
 
-        response = await callClaudeAPI(conversations[userId], userGroup);
+        response = await callClaudeAPI(messages, userGroup);
     }
 
-    // Handle final text response
     const reply = response.content[0].text || 'Done!';
-    conversations[userId].push({ role: 'assistant', content: reply });
+    const finalMsg = { role: 'assistant', content: reply };
+    messages.push(finalMsg);
+    newMessages.push(finalMsg);
+
+    batchAddConversationMessages(userId, newMessages);
     
     return reply;
 }
 
 function clearHistory(userId) {
-    conversations[userId] = [];
+    clearHistoryService(userId);
 }
 
 module.exports = { chat, clearHistory };

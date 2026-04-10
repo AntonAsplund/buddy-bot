@@ -27,6 +27,16 @@ db.exec(`
     description TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_conversations_userId ON conversations(userId);
+
 `);
 
 module.exports = db;
