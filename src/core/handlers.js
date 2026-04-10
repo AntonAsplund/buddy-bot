@@ -15,12 +15,20 @@ const {
  } = require('../handlers/shopping-handler');
 
 const availableToolsForUserGroup = (userGroup) => {
-    // For example, you could have different tools available for 'admin' vs 'user'
     if (userGroup === 'admin') {
-        return [JSON_DESCRIPTION_CREATE_LIST, JSON_DESCRIPTION_ADD, JSON_DESCRIPTION_LIST, JSON_DESCRIPTION_DONE, JSON_DESCRIPTION_CLEAR, JSON_DESCRIPTION_SHOW_ALL_LISTS];
+        return [JSON_DESCRIPTION_CREATE_LIST,
+                JSON_DESCRIPTION_ADD,
+                JSON_DESCRIPTION_LIST,
+                JSON_DESCRIPTION_DONE,
+                JSON_DESCRIPTION_CLEAR,
+                JSON_DESCRIPTION_SHOW_ALL_LISTS];
     }
     
-    return [JSON_DESCRIPTION_ADD, JSON_DESCRIPTION_LIST, JSON_DESCRIPTION_DONE, JSON_DESCRIPTION_CLEAR,JSON_DESCRIPTION_SHOW_ALL_LISTS];
+    return [JSON_DESCRIPTION_ADD,
+            JSON_DESCRIPTION_LIST,
+            JSON_DESCRIPTION_DONE,
+            JSON_DESCRIPTION_CLEAR,
+            JSON_DESCRIPTION_SHOW_ALL_LISTS];
 };
 
 const executeTool = (toolName, toolInput, userId) => {
